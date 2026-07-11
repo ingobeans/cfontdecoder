@@ -171,7 +171,15 @@ fn generate() {
         for item in entry {
             text += &format!("0x{item:04x}, ");
         }
-        text += &format!("// {}\n", file.file_name().to_str().unwrap());
+        text += &format!(
+            "// {}\n",
+            file.file_name()
+                .to_str()
+                .unwrap()
+                .split_once(".")
+                .unwrap()
+                .0
+        );
     }
     std::fs::write("output.c", text).unwrap();
 }
