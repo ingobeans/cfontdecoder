@@ -6,3 +6,5 @@ this tool can:
 * convert PNG files to entries in the font
 
 it also handles the fact that one file will often contain several different font variants. you get to choose which one to operate on.
+
+install with `cargo install --git https://github.com/ingobeans/cfontdecoder`
