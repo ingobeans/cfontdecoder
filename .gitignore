@@ -1,1 +1,5 @@
 /target
+add/*
+!*/.gitkeep
+output.c
+output/*
