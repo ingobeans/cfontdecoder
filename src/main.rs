@@ -59,7 +59,7 @@ fn preview_or_export(export: bool) {
         println!("{i}. Guessed height: {amt}");
     }
     let mut input = String::new();
-    print!("Enter the index of the font to preview: ");
+    print!("Enter the index of the font to preview/export: ");
     stdout().flush().unwrap();
     stdin().read_line(&mut input).unwrap();
     let input: usize = input.trim().parse().expect("Bad index");
@@ -113,7 +113,11 @@ fn preview_or_export(export: bool) {
             let buffer: ImageBuffer<Rgb<u8>, Vec<u8>> =
                 ImageBuffer::from_raw(bytes.len() as u32 / 3 / height as u32, height as _, bytes)
                     .unwrap();
-            let name = labels[index]
+            let mut name = labels[index].clone();
+            if name.chars().nth(0).unwrap_or('4').is_ascii_lowercase() {
+                name += "_lower";
+            }
+            name = name
                 .replace('"', "QUOTE")
                 .replace('*', "ASTERISK")
                 .replace(':', "COLON")
