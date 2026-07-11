@@ -67,7 +67,9 @@ fn preview_or_export(export: bool) {
 
     // guess height based on formatting
     let height = font.trim().split_once("\n").unwrap().0.split(",").count() - 1;
-    println!("Enter a character to display it:");
+    if !export {
+        println!("Enter a character to display it:");
+    }
     let mut labels = Vec::new();
     let mut values = Vec::new();
     for mut value in font.split(",") {
