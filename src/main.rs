@@ -159,7 +159,10 @@ fn generate() {
         if file.file_name().to_str().unwrap().starts_with(".") {
             continue;
         }
-        let data = std::fs::read("add/".to_string() + file.file_name().to_str().unwrap()).unwrap();
+        let Ok(data) = std::fs::read("add/".to_string() + file.file_name().to_str().unwrap())
+        else {
+            continue;
+        };
         let Ok(image) = load_from_memory(&data) else {
             println!(
                 "Warning: failed to parse image {}",
