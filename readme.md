@@ -4,6 +4,7 @@ this tool can:
 * preview this kind of font,
 * export all the characters to PNG files,
 * convert PNG files to entries in the font
+* generate a cfont from a .ttf font
 
 it also handles the fact that one file will often contain several different font variants. you get to choose which one to operate on.
 

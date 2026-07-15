@@ -1,6 +1,6 @@
 [package]
 name = "cfontdecoder"
-version = "0.4.0"
+version = "0.5.0"
 edition = "2024"
 
 [dependencies]
@@ -11,3 +11,4 @@ image = { version = "0.25.10", default-features = false, features = [
     "webp",
     "ico",
 ] }
+titanf = "3.0.0"

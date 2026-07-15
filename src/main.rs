@@ -3,7 +3,8 @@ use std::{
     io::{Write, stdin, stdout},
 };
 
-use image::{DynamicImage, ImageBuffer, Rgb, load_from_memory};
+use image::{ImageBuffer, Rgb, load_from_memory};
+use titanf::TrueTypeFont;
 
 fn draw_char(values: &[u16]) {
     for y in (0..values.len()).step_by(2) {
@@ -24,12 +25,26 @@ fn draw_char(values: &[u16]) {
     }
 }
 
-fn image_to_entry(image: DynamicImage) -> Vec<u16> {
+fn image_to_entry(data: &[u8], width: usize) -> Vec<u16> {
     let mut new = Vec::new();
-    for row in image.as_bytes().chunks(image.width() as usize * 3) {
+    for row in data.chunks(width * 3) {
         let mut entry = 0;
         for (x, pixel) in row.chunks(3).enumerate() {
             if pixel != [0, 0, 0] {
+                entry |= 1 << (16 - x - 2);
+            }
+        }
+        // println!("{}", format!("{:016b}", entry).replace("0", " "));
+        new.push(entry);
+    }
+    new
+}
+fn bitmap_to_entry(data: &[u8], width: usize) -> Vec<u16> {
+    let mut new = Vec::new();
+    for row in data.chunks(width) {
+        let mut entry = 0;
+        for (x, pixel) in row.iter().enumerate() {
+            if *pixel != 0 {
                 entry |= 1 << (16 - x - 2);
             }
         }
@@ -167,7 +182,7 @@ fn preview_or_export(export: bool) {
     }
 }
 
-fn generate() {
+fn convert() {
     let mut text: Vec<String> = Vec::new();
 
     for file in std::fs::read_dir("add").unwrap().flatten() {
@@ -186,7 +201,7 @@ fn generate() {
             continue;
         };
         let mut t = String::new();
-        let entry = image_to_entry(image);
+        let entry = image_to_entry(image.as_bytes(), image.width() as usize);
         if text.is_empty() {
             let mut t = String::new();
             for _ in 0..entry.len() {
@@ -215,20 +230,91 @@ fn generate() {
     std::fs::write("output.c", text.join("\n")).unwrap();
 }
 
+fn generate() {
+    let Ok(font) = std::fs::read("font.ttf") else {
+        println!("Error: no font named font.ttf in current directory.");
+        return;
+    };
+    let Ok(mut font) = TrueTypeFont::load_font(&font) else {
+        println!("Couldn't parse font.ttf as ttf font.");
+        return;
+    };
+    let mut start = String::new();
+    print!("Enter starting char, (default ' '):");
+    stdout().flush().unwrap();
+    stdin().read_line(&mut start).unwrap();
+    let start = start.trim().chars().nth(0).unwrap_or(' ') as u8;
+
+    let mut end = String::new();
+    print!("Enter ending char, (default '~'):");
+    stdout().flush().unwrap();
+    stdin().read_line(&mut end).unwrap();
+    let end = end.trim().chars().nth(0).unwrap_or('~') as u8;
+
+    let mut size = String::new();
+    print!("Enter font size, (default 12):");
+    stdout().flush().unwrap();
+    stdin().read_line(&mut size).unwrap();
+    let size: usize = size.trim().parse().unwrap_or(12);
+    println!("{start}..{end} - {size}");
+
+    let mut text: Vec<String> = Vec::new();
+    for char in start..end {
+        let char = char as char;
+
+        let (metrics, bitmap) = font.get_char::<false>(char, size as f32);
+        println!("{}.{}", metrics.width, metrics.height);
+        if metrics.width > 16 {
+            println!(
+                "Error: font char '{char}' has width wider than 16 pixels. Doesn't fit in this font format."
+            );
+            return;
+        }
+        if metrics.width | metrics.height == 0 {
+            continue;
+        }
+        let mut t = String::new();
+        let mut entry = bitmap_to_entry(&bitmap, metrics.width);
+        if entry.len() < size {
+            for _ in 0..size - entry.len() {
+                entry.push(0);
+            }
+        }
+        // println!("Rendered 'A': {}x{} pixels", metrics.width, metrics.height);
+        for item in entry {
+            t += &format!("0x{item:04x}, ");
+        }
+
+        text.push(format!("{t} // {}", char));
+    }
+    text.sort_by(|a, b| a.chars().last().unwrap().cmp(&b.chars().last().unwrap()));
+    let text = format!(
+        "#include \"fonts.h\"
+
+static const uint16_t Font7x10 [] = {{\n{}\n}};",
+        text.join("\n").replace("// \\", "/* \\ */")
+    );
+    std::fs::write("fonts.c", text).unwrap();
+    println!("Success! Exported to fonts.c");
+}
+
 fn main() {
     let args = std::env::args().collect::<Vec<String>>();
     if args.contains(&"preview".to_string()) {
         preview_or_export(false);
-    } else if args.contains(&"generate".to_string()) {
-        generate();
+    } else if args.contains(&"convert".to_string()) {
+        convert();
     } else if args.contains(&"export".to_string()) {
         preview_or_export(true);
+    } else if args.contains(&"generate".to_string()) {
+        generate();
     } else {
         println!("# cFontDecoder");
-        println!("usage: cfontdecoder preview|generate|export");
+        println!("usage: cfontdecoder preview|convert|export");
         println!("\nmodes:");
         println!("\tpreview: print characters from the font file to stdout");
-        println!("\tgenerate: generate font file entries from images in add/");
+        println!("\tconvert: convert images in add/ to font entries");
+        println!("\tgenerate: generate cfont from .ttf font");
         println!("\texport: export font characters to images in output/");
     }
 }

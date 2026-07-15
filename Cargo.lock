@@ -40,9 +40,10 @@ checksum = "9330f8b2ff13f34540b44e946ef35111825727b38d33286ef986142615121801"
 
 [[package]]
 name = "cfontdecoder"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "image",
+ "titanf",
 ]
 
 [[package]]
@@ -158,6 +159,12 @@ name = "simd-adler32"
 version = "0.3.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "703d5c7ef118737c72f1af64ad2f6f8c5e1921f818cdcb97b8fe6fc69bf66214"
+
+[[package]]
+name = "titanf"
+version = "3.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "81ad7553a7d4541331d76a94cd68d98d0bd720936818185b2c6ea2d420039b2a"
 
 [[package]]
 name = "zune-core"
