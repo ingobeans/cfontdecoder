@@ -39,6 +39,28 @@ fn image_to_entry(image: DynamicImage) -> Vec<u16> {
     new
 }
 
+static SUBTITUTIONS: &[[&str; 2]] = &[
+    ["\"", "QUOTE"],
+    ["*", "ASTERISK"],
+    [":", "COLON"],
+    ["<", "LESSTHAN"],
+    [">", "GREATERTHAN"],
+    ["?", "QUESTIONMARK"],
+    ["|", "PIPE"],
+    [",", "COMMA"],
+];
+
+fn substitute(mut text: String, left_to_right: bool) -> String {
+    for [l, r] in SUBTITUTIONS.iter() {
+        if left_to_right {
+            text = text.replace(l, r);
+        } else {
+            text = text.replace(r, l);
+        }
+    }
+    text
+}
+
 fn preview_or_export(export: bool) {
     let fonts = read_to_string("fonts.c")
         .expect("No fonts.c file in current working directory")
@@ -101,7 +123,7 @@ fn preview_or_export(export: bool) {
     if export {
         for (index, char) in values.into_iter().enumerate() {
             let mut bytes: Vec<u8> = Vec::new();
-            for y in (0..char.len()) {
+            for y in 0..char.len() {
                 for x in 0..16 {
                     let top_pixel = &char[y as usize] << x & 0x4000 != 0;
                     if top_pixel {
@@ -119,14 +141,7 @@ fn preview_or_export(export: bool) {
             if name.chars().nth(0).unwrap_or('4').is_ascii_lowercase() {
                 name += "_lower";
             }
-            name = name
-                .replace('"', "QUOTE")
-                .replace('*', "ASTERISK")
-                .replace(':', "COLON")
-                .replace('<', "LESSTHAN")
-                .replace('>', "GREATERTHAN")
-                .replace('?', "QUESTIONMARK")
-                .replace('|', "PIPE");
+            name = substitute(name, true);
             buffer
                 .save_with_format(format!("output/{}.png", name), image::ImageFormat::Png)
                 .unwrap();
@@ -153,7 +168,7 @@ fn preview_or_export(export: bool) {
 }
 
 fn generate() {
-    let mut text = String::new();
+    let mut text: Vec<String> = Vec::new();
 
     for file in std::fs::read_dir("add").unwrap().flatten() {
         if file.file_name().to_str().unwrap().starts_with(".") {
@@ -170,21 +185,34 @@ fn generate() {
             );
             continue;
         };
+        let mut t = String::new();
         let entry = image_to_entry(image);
-        for item in entry {
-            text += &format!("0x{item:04x}, ");
+        if text.is_empty() {
+            let mut t = String::new();
+            for _ in 0..entry.len() {
+                t += "0x0000, ";
+            }
+            text.push(t + " // ");
         }
-        text += &format!(
-            "// {}\n",
+
+        for item in entry {
+            t += &format!("0x{item:04x}, ");
+        }
+        let name = substitute(
             file.file_name()
                 .to_str()
                 .unwrap()
                 .split_once(".")
                 .unwrap()
                 .0
+                .replace("_lower", ""),
+            false,
         );
+
+        text.push(format!("{t} // {}", name));
     }
-    std::fs::write("output.c", text).unwrap();
+    text.sort_by(|a, b| a.chars().last().unwrap().cmp(&b.chars().last().unwrap()));
+    std::fs::write("output.c", text.join("\n")).unwrap();
 }
 
 fn main() {
