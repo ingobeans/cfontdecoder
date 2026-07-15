@@ -1,8 +1,8 @@
 /target
 add/*
-!*/.gitkeep
 output.c
 output/*
 add*/
 *.ttf
 fonts copy.c
+!*/.gitkeep
